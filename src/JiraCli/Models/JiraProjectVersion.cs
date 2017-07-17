@@ -7,6 +7,7 @@
 
 namespace JiraCli.Models
 {
+    using Formatter;
     using Newtonsoft.Json;
     using System;
 
