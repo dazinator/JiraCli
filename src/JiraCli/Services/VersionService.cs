@@ -253,7 +253,7 @@ namespace JiraCli.Services
             // - [SemVer]
             // - [GroupName]:[SemVer]
 
-            // We need to detect the second case, and remove the group name to get return the SemVer portion of the release name.
+            // We need to detect the second case, and return that group name if present, and the semver.
             var split = versionName.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
             if (split.Length == 2)
             {
@@ -261,7 +261,7 @@ namespace JiraCli.Services
                 return split[1];
             }
 
-            // not recognised as [GroupName]:[SemVer] format, so just return version name as is, with no group.
+            // No group name present, so just assume versionName is the [SemVer] and there is no group name.
             groupName = null;
             return versionName;
         }
