@@ -7,13 +7,13 @@
 
 namespace JiraCli.Services
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Atlassian.Jira;
     using Catel;
     using Catel.Logging;
     using Models;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
     public class VersionService : IVersionService
     {
@@ -55,7 +55,10 @@ namespace JiraCli.Services
 
             // update issues
             var issueUpdate = new JiraIssueUpdate();
-            issueUpdate.AddFieldValue("fixVersions", new { name = version });
+            issueUpdate.AddFieldValue("fixVersions", new
+            {
+                name = version
+            });
 
             var issuesIds = string.Join(",", issues);
             var jql = "project = " + projectKey + " AND key in (" + issuesIds + ") ORDER BY priority DESC, updated DESC";
@@ -202,9 +205,11 @@ namespace JiraCli.Services
 
             Log.Info("Merging all prerelease versions into '{0}'", version);
 
-            if (!_versionInfoService.IsReleaseVersion(version))
+            var semanticVersionNumber = GetSemanticVersion(version, out var groupName);                      
+
+            if (!_versionInfoService.IsReleaseVersion(semanticVersionNumber))
             {
-                Log.Info("Version '{0}' is not a stable version, versions will not be merged", version);
+                Log.Info("Version '{0}' is not a stable version, versions will not be merged", semanticVersionNumber);
                 return;
             }
 
@@ -215,12 +220,16 @@ namespace JiraCli.Services
 
             foreach (var remoteVersion in allVersions)
             {
-                if (_mergeVersionService.ShouldBeMerged(version, remoteVersion.Name))
+                var existingJiraSemanticVersionNumber = GetSemanticVersion(remoteVersion.Name, out var existingJiraSemanticVersionNumberGroupName);
+                
+                // only consider mergine jira versions in the same group (or null group)
+                if (existingJiraSemanticVersionNumberGroupName == groupName)
                 {
-                    versionsToMerge.Add(remoteVersion);
-
-
-                }
+                    if (_mergeVersionService.ShouldBeMerged(semanticVersionNumber, existingJiraSemanticVersionNumber))
+                    {
+                        versionsToMerge.Add(remoteVersion);
+                    }
+                }               
             }
 
             foreach (var versionToMerge in versionsToMerge)
@@ -236,6 +245,25 @@ namespace JiraCli.Services
             }
 
             Log.Info("Merged all prerelease versions into '{0}'", version);
+        }
+
+        private string GetSemanticVersion(string versionName, out string groupName)
+        {
+            // Versions will be named using either of these conventions:
+            // - [SemVer]
+            // - [GroupName]:[SemVer]
+
+            // We need to detect the second case, and remove the group name to get return the SemVer portion of the release name.
+            var split = versionName.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+            if (split.Length == 2)
+            {
+                groupName = split[0];
+                return split[1];
+            }
+
+            // not recognised as [GroupName]:[SemVer] format, so just return version name as is, with no group.
+            groupName = null;
+            return versionName;
         }
 
         private JiraProject GetProject(IJiraRestClient jiraRestClient, string projectKey)
