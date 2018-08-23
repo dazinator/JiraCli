@@ -60,7 +60,7 @@ namespace JiraCli
 
             var type = TypeCache.GetType("Atlassian.Jira.Remote.JiraRestServiceClient");
             var constructor = type.GetConstructorsEx().First();
-
+           
             var jiraRestClient = (IJiraRestClient) constructor.Invoke(new object[]
             {
                 context.JiraUrl,
