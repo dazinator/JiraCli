@@ -122,3 +122,5 @@ Desktop.ini
 
 # mstest test results
 TestResults
+/.vs
+/src/.vs

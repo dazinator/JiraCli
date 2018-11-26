@@ -7,9 +7,9 @@
 
 namespace JiraCli.Services
 {
-    using System;
     using Catel;
     using Catel.Logging;
+    using System;
 
     public class MergeVersionService : IMergeVersionService
     {
@@ -22,6 +22,51 @@ namespace JiraCli.Services
             Argument.IsNotNull(() => versionInfoService);
 
             _versionInfoService = versionInfoService;
+        }
+
+        public bool ShouldFeatureVersionBeDeleted(string currentVersion, string featureVersion, string featureName)
+        {
+            Argument.IsNotNull(() => currentVersion);
+            Argument.IsNotNull(() => featureVersion);
+
+            // Features can only be deleted when:
+            // 1. the current version being built is an unstable build (i.e develop branch),   
+            // 2. the version we are considering to delete should have a pre-release label matching the feature branch name that has been merged.
+
+
+            //1.
+            if (_versionInfoService.IsReleaseVersion(currentVersion))
+            {
+                return false;
+            }       
+
+            // 2.
+            if (!_versionInfoService.IsPreRelease(featureVersion, (label) =>
+            {
+                return label.ToLowerInvariant().StartsWith(featureName.ToLowerInvariant());
+
+            }))
+            {
+                return false;
+            }
+
+            //// 3.
+
+            //var versionComparison = _versionInfoService.CompareVersions(versionToDelete, currentVersion);
+            //switch (versionComparison)
+            //{
+            //    case VersionComparisonResult.LessThan:
+            //        return true;
+
+            //    case VersionComparisonResult.Unknown:
+            //        Log.Warning("Unable to compare version '{0}' with version '{1}'. Version will not be included in the Merge.", versionToDelete, versionBeingReleased);
+            //        return false;
+
+            //    default:
+            //        return false;
+            //}
+
+            return true;
         }
 
         public bool ShouldBeMerged(string versionBeingReleased, string versionToCheck)

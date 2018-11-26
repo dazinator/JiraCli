@@ -7,6 +7,7 @@
 
 namespace JiraCli
 {
+    using System.Collections.Generic;
     using Catel.Logging;
 
     public class Context
@@ -29,9 +30,11 @@ namespace JiraCli
 
         public string Project { get; set; }
         public string Version { get; set; }
+        public string Branch { get; set; }
         public string[] Issues { get; set; }
 
         public bool MergeVersions { get; set; }
+        public List<string> MergedFeatureBranchesForDelete { get; set; }
 
         public void ValidateContext()
         {

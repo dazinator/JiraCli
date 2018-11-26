@@ -37,6 +37,11 @@ namespace JiraCli
             {
                 Log.ErrorAndThrowException<JiraCliException>("Version is missing");
             }
+
+            if (string.IsNullOrEmpty(context.Branch))
+            {
+                Log.ErrorAndThrowException<JiraCliException>("Branch is missing");
+            }
         }
 
         protected override void ExecuteWithContext(Context context)
@@ -44,6 +49,19 @@ namespace JiraCli
             var jira = CreateJira(context);
 
             _versionService.CreateVersion(jira, context.Project, context.Version);
+
+            // It's sometimes desirable to delete versions in Jira, for example when
+            // a feature branch is integrated into develop branch, we can delete the feature branch versions
+            // when the new develop build version is created. So that's what we do here.
+            var mergedVersions = context.MergedFeatureBranchesForDelete?.ToArray();
+            if (mergedVersions?.Length > 0)
+            {
+                var deletedVersions = _versionService.DeleteFeatureBranchVersions(jira, context.Project, context.Version, mergedVersions);
+            }
+
         }
+
+
     }
+
 }

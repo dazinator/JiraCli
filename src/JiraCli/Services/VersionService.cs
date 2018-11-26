@@ -205,7 +205,7 @@ namespace JiraCli.Services
 
             Log.Info("Merging all prerelease versions into '{0}'", version);
 
-            var semanticVersionNumber = GetSemanticVersion(version, out var groupName);                      
+            var semanticVersionNumber = GetSemanticVersion(version, out var groupName);
 
             if (!_versionInfoService.IsReleaseVersion(semanticVersionNumber))
             {
@@ -221,7 +221,7 @@ namespace JiraCli.Services
             foreach (var remoteVersion in allVersions)
             {
                 var existingJiraSemanticVersionNumber = GetSemanticVersion(remoteVersion.Name, out var existingJiraSemanticVersionNumberGroupName);
-                
+
                 // only consider mergine jira versions in the same group (or null group)
                 if (existingJiraSemanticVersionNumberGroupName == groupName)
                 {
@@ -229,7 +229,7 @@ namespace JiraCli.Services
                     {
                         versionsToMerge.Add(remoteVersion);
                     }
-                }               
+                }
             }
 
             foreach (var versionToMerge in versionsToMerge)
@@ -245,6 +245,57 @@ namespace JiraCli.Services
             }
 
             Log.Info("Merged all prerelease versions into '{0}'", version);
+        }
+
+        public List<JiraProjectVersion> DeleteFeatureBranchVersions(IJiraRestClient jiraRestClient, string projectKey, string currentVersion, string[] mergedFeatureBranchNames)
+        {
+            Argument.IsNotNull(() => jiraRestClient);
+            Argument.IsNotNullOrWhitespace(() => projectKey);
+            Argument.IsNotNullOrEmptyArray(() => mergedFeatureBranchNames);
+
+            var allVersions = jiraRestClient.GetProjectVersions(projectKey);
+
+            //var newVersion = allVersions.First(x => string.Equals(x.Name, version));
+            var versionsToDelete = new List<JiraProjectVersion>();
+            var branchPathSplitChars = new char[] { '/', '\\' };
+
+            foreach (var mergedFeatureBranchName in mergedFeatureBranchNames)
+            {
+                Log.Info("Deleting all prerelease versions for feature branch '{0}'", mergedFeatureBranchName);
+
+                var featureNameSplit = mergedFeatureBranchName.Split(new string[] { "feature" }, StringSplitOptions.RemoveEmptyEntries);
+                if (featureNameSplit.Length < 1)
+                {
+                    Argument.IsNotNullOrEmptyArray(nameof(featureNameSplit), featureNameSplit);
+                }
+                var featureName = featureNameSplit[featureNameSplit.Length - 1];
+                featureName = featureName.TrimStart(branchPathSplitChars);
+
+                var currentSemanticVersion = GetSemanticVersion(currentVersion, out var groupName);
+
+                foreach (var remoteVersion in allVersions)
+                {
+                    var jiraVersionForPotentialDeletion = GetSemanticVersion(remoteVersion.Name, out var jiraVersionForPotentialDeletionGroupName);
+
+                    // only consider deleting versions with same group prefix.
+                    if (jiraVersionForPotentialDeletionGroupName == groupName)
+                    {
+                        if (_mergeVersionService.ShouldFeatureVersionBeDeleted(currentSemanticVersion, jiraVersionForPotentialDeletion, featureName))
+                        {
+                            versionsToDelete.Add(remoteVersion);
+                        }
+                    }
+                }
+
+            }
+
+            foreach (var versionToMerge in versionsToDelete)
+            {                
+                Log.Debug("Deleting version '{0}", versionToMerge);
+                jiraRestClient.DeleteProjectVersion(versionToMerge, null, null);
+            }
+
+            return versionsToDelete;
         }
 
         private string GetSemanticVersion(string versionName, out string groupName)
