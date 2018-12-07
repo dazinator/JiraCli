@@ -150,5 +150,22 @@ namespace JiraCli.Services
            
             return false;
         }
+
+        public bool IsPatch(string version)
+        {
+            Argument.IsNotNull(() => version);
+
+            // Can assume semver format.
+            SemVersion semVer;
+            if (SemVersion.TryParse(version, out semVer))
+            {
+                if (semVer.Patch > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

@@ -59,6 +59,13 @@ namespace JiraCli
                 var deletedVersions = _versionService.DeleteFeatureBranchVersions(jira, context.Project, context.Version, mergedVersions);
             }
 
+            // todo: also handle merged hotfix branches
+            var mergedHotfixVersions = context.MergedHotfixBranchesForDelete?.ToArray();
+            if (mergedHotfixVersions?.Length > 0)
+            {
+                var deletedVersions = _versionService.DeleteHotfixBranchVersions(jira, context.Project, context.Version, mergedHotfixVersions);
+            }
+
         }
 
 

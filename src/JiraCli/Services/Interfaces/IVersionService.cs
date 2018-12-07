@@ -18,5 +18,6 @@ namespace JiraCli.Services
         void MergeVersions(IJiraRestClient jiraRestClient, string projectKey, string version);
         string[] AssignVersionToIssues(IJiraRestClient jiraRestClient, string projectKey, string version, string[] issues);
         List<JiraProjectVersion> DeleteFeatureBranchVersions(IJiraRestClient jiraRestClient, string projectKey, string currentVersion, string[] mergedFeatureBranchNames);
+        List<JiraProjectVersion> DeleteHotfixBranchVersions(IJiraRestClient jiraRestClient, string projectKey, string currentVersion, string[] mergedBranchNames);
     }
 }

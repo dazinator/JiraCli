@@ -69,6 +69,50 @@ namespace JiraCli.Services
             return true;
         }
 
+        public bool ShouldHotfixVersionBeDeleted(string currentVersion, string hotfixVersion, string hotfixPrereleaseLabelPrefix = "beta.")
+        {
+            Argument.IsNotNull(() => currentVersion);
+            Argument.IsNotNull(() => hotfixVersion);
+
+            // Hotfixes can only be deleted when:
+            // 1. the current version being built is a stable build (i.e master branch),   
+            // 2. the version we are considering to delete should have a pre-release label matching the hotfix prerelease label prefix
+            // 3. the version we are considering to delete should have a lower semver precedence than the current stable version. 
+            // 4. the current version should be a non zero patch number.
+
+
+            //1.
+            if (!_versionInfoService.IsReleaseVersion(currentVersion))
+            {
+                return false;
+            }
+
+            // 2
+            if (!_versionInfoService.IsPreRelease(hotfixVersion, (label) =>
+            {
+                return label.ToLowerInvariant().StartsWith(hotfixPrereleaseLabelPrefix.ToLowerInvariant());
+
+            }))
+            {
+                return false;
+            }
+
+            // 3
+            var compareResult = _versionInfoService.CompareVersions(hotfixVersion, currentVersion);
+            if(compareResult != VersionComparisonResult.LessThan)
+            {
+                return false;
+            }
+
+            // 4
+            if(!_versionInfoService.IsPatch(currentVersion))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public bool ShouldBeMerged(string versionBeingReleased, string versionToCheck)
         {
             Argument.IsNotNull(() => versionBeingReleased);

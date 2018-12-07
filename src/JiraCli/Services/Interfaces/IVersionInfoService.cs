@@ -16,6 +16,6 @@ namespace JiraCli.Services
         bool IsPreReleaseWithLabelPrefix(string version, string labelPrefix);
         bool IsReleaseVersion(string version);
         VersionComparisonResult CompareVersions(string versionToCheck, string versionBeingReleased);
-
+        bool IsPatch(string currentVersion);
     }
 }

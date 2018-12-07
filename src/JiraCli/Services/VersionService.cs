@@ -297,6 +297,58 @@ namespace JiraCli.Services
 
             return versionsToDelete;
         }
+        
+        public List<JiraProjectVersion> DeleteHotfixBranchVersions(IJiraRestClient jiraRestClient, string projectKey, string currentVersion, string[] mergedBranchNames)
+        {
+            Argument.IsNotNull(() => jiraRestClient);
+            Argument.IsNotNullOrWhitespace(() => projectKey);
+            Argument.IsNotNullOrEmptyArray(() => mergedBranchNames);
+
+            var allVersions = jiraRestClient.GetProjectVersions(projectKey);
+
+            //var newVersion = allVersions.First(x => string.Equals(x.Name, version));
+            var versionsToDelete = new List<JiraProjectVersion>();
+            var branchPathSplitChars = new char[] { '/', '\\' };
+
+            foreach (var mergedBranchName in mergedBranchNames)
+            {
+                Log.Info("Deleting all versions for branch '{0}'", mergedBranchNames);
+
+                var branchNameSplit = mergedBranchName.Split(new string[] { "hotfix" }, StringSplitOptions.RemoveEmptyEntries);
+                if (branchNameSplit.Length < 1)
+                {
+                    Argument.IsNotNullOrEmptyArray(nameof(branchNameSplit), branchNameSplit);
+                }
+                var branchName = branchNameSplit[branchNameSplit.Length - 1];
+                branchName = branchName.TrimStart(branchPathSplitChars);
+
+                var currentSemanticVersion = GetSemanticVersion(currentVersion, out var groupName);
+
+                foreach (var remoteVersion in allVersions)
+                {
+                    var jiraVersionForPotentialDeletion = GetSemanticVersion(remoteVersion.Name, out var jiraVersionForPotentialDeletionGroupName);
+
+                    // only consider deleting versions with same group prefix.
+                    if (jiraVersionForPotentialDeletionGroupName == groupName)
+                    {
+                        if (_mergeVersionService.ShouldHotfixVersionBeDeleted(currentSemanticVersion, jiraVersionForPotentialDeletion, branchName))
+                        {
+                            versionsToDelete.Add(remoteVersion);
+                        }
+                    }
+                }
+
+            }
+
+            foreach (var versionToMerge in versionsToDelete)
+            {
+                Log.Debug("Deleting hotfix version '{0}", versionToMerge);
+                jiraRestClient.DeleteProjectVersion(versionToMerge, null, null);
+            }
+
+            return versionsToDelete;
+        }
+
 
         private string GetSemanticVersion(string versionName, out string groupName)
         {

@@ -36,6 +36,8 @@ namespace JiraCli
         public bool MergeVersions { get; set; }
         public List<string> MergedFeatureBranchesForDelete { get; set; }
 
+        public List<string> MergedHotfixBranchesForDelete { get; set; }
+
         public void ValidateContext()
         {
             if (string.IsNullOrEmpty(UserName))
